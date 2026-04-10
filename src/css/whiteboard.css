@@ -304,7 +304,8 @@
 
 .wb-conn-line.dashed { stroke-dasharray: 6 4; }
 
-.wb-conn-group:hover .wb-conn-line {
+.wb-conn-group:hover .wb-conn-line,
+.wb-conn-selected .wb-conn-line {
   stroke-width: calc(var(--wb-conn-stroke, 1.5) + 1);
   stroke-opacity: calc(var(--wb-conn-opacity, 0.5) + 0.3);
 }
@@ -580,3 +581,19 @@
 .wb-node-port { transition: opacity .15s; }
 .wb-node:hover .wb-node-port { opacity: 0.4 !important; }
 .wb-node-port:hover { opacity: 0.8 !important; }
+
+/* ═══ CONNECTION HANDLES (Bézier + Anchor) ═══ */
+.wb-bezier-handle {
+  transition: opacity .15s;
+}
+.wb-bezier-handle:hover {
+  opacity: 1 !important;
+  fill-opacity: 0.8 !important;
+}
+.wb-anchor-handle {
+  transition: opacity .15s;
+}
+.wb-anchor-handle:hover {
+  opacity: 1 !important;
+  fill-opacity: 0.8 !important;
+}

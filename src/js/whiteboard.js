@@ -19,6 +19,8 @@ let isFullscreen = false;
 let spaceHeld = false; // space = camera-only mode
 let linkDrag = { active: false, fromId: null, line: null, dropHandlers: [] };
 let rectSel = { active: false, startX: 0, startY: 0, rect: null };
+let handleDrag = { active: false, connId: null, handle: null, el: null }; // handle: 'cp1'|'cp2'|'fromAnchor'|'toAnchor'
+let selectedConnId = null;
 
 let stateRef = null;
 let saveStateRef = null;
@@ -441,7 +443,7 @@ function saveWbConn() {
   if (id) { const c = board.connections.find(c => c.id === id); if (c) Object.assign(c, cd); } else { cd.id = "conn_" + Date.now(); board.connections.push(cd); }
   document.getElementById("dlgWbConn").close(); save(); renderConnections(); toastRef(id ? "Connexion modifiée" : "Connexion ajoutée");
 }
-async function deleteWbConn() { const id = document.getElementById("fwc_id").value; if (!id) return; document.getElementById("dlgWbConn").close(); const ok = await customConfirm("Supprimer cette connexion ?", "Supprimer"); if (!ok) return; const board = getBoard(); board.connections = (board.connections || []).filter(c => c.id !== id); save(); renderConnections(); toastRef("Connexion supprimée"); }
+async function deleteWbConn() { const id = document.getElementById("fwc_id").value; if (!id) return; document.getElementById("dlgWbConn").close(); const ok = await customConfirm("Supprimer cette connexion ?", "Supprimer"); if (!ok) return; const board = getBoard(); board.connections = (board.connections || []).filter(c => c.id !== id); if (selectedConnId === id) selectedConnId = null; save(); renderConnections(); toastRef("Connexion supprimée"); }
 
 /* ═══ VIEWPORT ═══ */
 function applyViewport() { if (!worldGroup) return; worldGroup.setAttribute("transform", `translate(${viewport.panX},${viewport.panY}) scale(${viewport.zoom})`); const i = document.getElementById("wb-zoom-info"); if (i) i.textContent = `${Math.round(viewport.zoom * 100)}%`; }
@@ -469,7 +471,7 @@ function toggleFullscreen() { isFullscreen = !isFullscreen; const c = document.g
 function initPanZoom() {
   if (!svgEl) return;
   svgEl.addEventListener("pointerdown", (e) => {
-    const onBg = e.target === svgEl || (e.target.tagName === 'rect' && !e.target.closest('.wb-node,.wb-zone,.wb-conn-group'));
+    const onBg = e.target === svgEl || (e.target.tagName === 'rect' && !e.target.closest('.wb-node,.wb-zone,.wb-conn-group,.wb-handle'));
     if (!onBg && !spaceHeld) return;
     if (e.shiftKey && !spaceHeld) { startRectSelect(e); return; }
     isPanning = true; panStart = { x: e.clientX - viewport.panX, y: e.clientY - viewport.panY };
@@ -501,7 +503,7 @@ function applySelection() { document.querySelectorAll(".wb-node").forEach(g => {
 
 /* ═══ CANVAS EVENTS ═══ */
 function initCanvasEvents() {
-  svgEl.addEventListener("pointerdown", (e) => { const onBg = e.target === svgEl || (e.target.tagName === 'rect' && !e.target.closest('.wb-node,.wb-zone,.wb-conn-group')); if (onBg && !e.shiftKey) { selectedIds.clear(); applySelection(); } });
+  svgEl.addEventListener("pointerdown", (e) => { const onBg = e.target === svgEl || (e.target.tagName === 'rect' && !e.target.closest('.wb-node,.wb-zone,.wb-conn-group,.wb-handle')); if (onBg && !e.shiftKey) { selectedIds.clear(); applySelection(); deselectConn(); } });
   svgEl.addEventListener("pointermove", (e) => { if (!linkDrag.active || !linkDrag.line) return; const p = svgPoint(e); linkDrag.line.setAttribute("x2", p.x); linkDrag.line.setAttribute("y2", p.y); });
   svgEl.addEventListener("pointerup", () => { cancelLinkDrag(); });
 }
@@ -518,7 +520,7 @@ function initKeyboard() {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
     if (e.code === 'Space') { e.preventDefault(); spaceHeld = true; if (svgEl) svgEl.style.cursor = 'grab'; }
     if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.size) { e.preventDefault(); removeSelected(); }
-    if (e.key === 'Escape') { selectedIds.clear(); applySelection(); cancelLinkDrag(); }
+    if (e.key === 'Escape') { selectedIds.clear(); applySelection(); cancelLinkDrag(); deselectConn(); }
   });
   document.addEventListener("keyup", (e) => { if (e.code === 'Space') { spaceHeld = false; if (svgEl) svgEl.style.cursor = ''; } });
 }
@@ -646,13 +648,83 @@ function cancelLinkDrag() {
   linkDrag.dropHandlers = [];
 }
 
+/* ═══ HANDLE DRAG (Bézier CP + Anchor) ═══ */
+function startHandleDrag(connId, handle, el, e) {
+  handleDrag.active = true; handleDrag.connId = connId; handleDrag.handle = handle; handleDrag.el = el;
+  el.setPointerCapture(e.pointerId); el.style.cursor = "grabbing";
+  const onMove = (ev) => {
+    if (!handleDrag.active) return;
+    const p = svgPoint(ev); const board = getBoard();
+    const conn = (board.connections || []).find(c => c.id === connId); if (!conn) return;
+    if (handle === 'cp1' || handle === 'cp2') {
+      conn[handle] = { x: p.x, y: p.y };
+      el.setAttribute("cx", p.x); el.setAttribute("cy", p.y);
+    } else if (handle === 'fromAnchor') {
+      conn.fromAnchor = angleFromCenter(conn.from, p);
+      const fe = getNodeEdgeAtAngle(conn.from, conn.fromAnchor);
+      el.setAttribute("x", fe.x - 4); el.setAttribute("y", fe.y - 4);
+    } else if (handle === 'toAnchor') {
+      conn.toAnchor = angleFromCenter(conn.to, p);
+      const te = getNodeEdgeAtAngle(conn.to, conn.toAnchor);
+      el.setAttribute("x", te.x - 4); el.setAttribute("y", te.y - 4);
+    }
+    // Update path inline (find the conn-group for this connection)
+    updateConnPath(conn);
+  };
+  const onUp = () => {
+    handleDrag.active = false; el.style.cursor = "grab";
+    el.removeEventListener("pointermove", onMove); el.removeEventListener("pointerup", onUp);
+    save(); renderConnections();
+  };
+  el.addEventListener("pointermove", onMove); el.addEventListener("pointerup", onUp);
+  // Double-click to reset
+  el.addEventListener("dblclick", (ev) => {
+    ev.stopPropagation(); const board = getBoard();
+    const conn = (board.connections || []).find(c => c.id === connId); if (!conn) return;
+    if (handle === 'cp1' || handle === 'cp2') { delete conn[handle]; }
+    else if (handle === 'fromAnchor') { delete conn.fromAnchor; }
+    else if (handle === 'toAnchor') { delete conn.toAnchor; }
+    save(); renderConnections(); toastRef("Point réinitialisé");
+  });
+}
+function updateConnPath(conn) {
+  const board = getBoard();
+  const fn = (board.nodes || []).find(n => n.wbId === conn.from), tn = (board.nodes || []).find(n => n.wbId === conn.to); if (!fn || !tn) return;
+  const fc = getNodeCenter(conn.from), tc = getNodeCenter(conn.to);
+  const fe = conn.fromAnchor != null ? getNodeEdgeAtAngle(conn.from, conn.fromAnchor) : getNodeEdge(fc, tc, conn.from);
+  const te = conn.toAnchor != null ? getNodeEdgeAtAngle(conn.to, conn.toAnchor) : getNodeEdge(tc, fc, conn.to);
+  const routing = conn.routing || 'straight'; const pathD = buildPath(fe, te, routing, conn);
+  // Update all path elements in the connection group
+  const cg = document.getElementById("wb-connections"); if (!cg) return;
+  const groups = cg.querySelectorAll('.wb-conn-group');
+  // Find the matching group by connection index
+  const idx = (board.connections || []).indexOf(conn); if (idx < 0 || idx >= groups.length) return;
+  const paths = groups[idx].querySelectorAll('path');
+  paths.forEach(p => p.setAttribute('d', pathD));
+  // Update tangent lines in overlay
+  if (routing === 'curve') {
+    const ov = document.getElementById("wb-overlay"); if (!ov) return;
+    const def = defaultCP(fe, te);
+    const c1 = conn.cp1 || def.cp1, c2 = conn.cp2 || def.cp2;
+    const lines = ov.querySelectorAll(`line.wb-handle`);
+    // Lines come in pairs per curve connection — find the right ones by index
+    let curveIdx = 0;
+    for (let i = 0; i < idx; i++) {
+      if ((board.connections[i].routing || 'straight') === 'curve') curveIdx++;
+    }
+    const l1 = lines[curveIdx * 2], l2 = lines[curveIdx * 2 + 1];
+    if (l1) { l1.setAttribute("x1", fe.x); l1.setAttribute("y1", fe.y); l1.setAttribute("x2", c1.x); l1.setAttribute("y2", c1.y); }
+    if (l2) { l2.setAttribute("x1", te.x); l2.setAttribute("y1", te.y); l2.setAttribute("x2", c2.x); l2.setAttribute("y2", c2.y); }
+  }
+}
+
 /* ═══ NODE DRAG ═══ */
 function initNodeDrag(nodeGroup, wbId) {
   let dr = false, sx, sy, offsets = [];
   nodeGroup.addEventListener("pointerdown", (e) => {
     if (e.button !== 0 || e.target.closest('.wb-node-delete') || e.target.closest('.wb-node-port') || e.target.closest('.wb-node-resize') || spaceHeld) return;
     e.stopPropagation(); dr = true; nodeGroup.setPointerCapture(e.pointerId);
-    sx = e.clientX; sy = e.clientY; nodeGroup.classList.add("dragging");
+    sx = e.clientX; sy = e.clientY; nodeGroup.classList.add("dragging"); deselectConn();
     if (!e.shiftKey && !selectedIds.has(wbId)) { selectedIds.clear(); applySelection(); }
     selectedIds.add(wbId); nodeGroup.classList.add("selected");
     // Store offsets for all selected nodes for group move
@@ -689,25 +761,101 @@ function getNodeEdge(fromC, toC, wbId) {
   const dx = toC.x - cx, dy = toC.y - cy; if (dx === 0 && dy === 0) return { x: cx + hw, y: cy };
   const s = Math.min(hw / (Math.abs(dx) || 1), hh / (Math.abs(dy) || 1)); return { x: cx + dx * s, y: cy + dy * s };
 }
-function buildPath(fe, te, routing) {
-  if (routing === 'curve') { const dx = te.x - fe.x; return `M${fe.x},${fe.y} C${fe.x + dx * .4},${fe.y} ${te.x - dx * .4},${te.y} ${te.x},${te.y}`; }
+function getNodeEdgeAtAngle(wbId, angle) {
+  const board = getBoard(); const pos = (board.positions || {})[wbId] || { x: 0, y: 0 }; const nd = (board.nodes || []).find(n => n.wbId === wbId);
+  if (!nd) return { x: pos.x, y: pos.y };
+  const sz = getNodeSize(nd); const rad = angle * Math.PI / 180;
+  const dx = Math.cos(rad), dy = Math.sin(rad);
+  if (nd.nodeType === "user") { const r = 28, cx = pos.x + 30, cy = pos.y + 30; return { x: cx + dx * r, y: cy + dy * r }; }
+  const hw = nd.nodeType === "cloud" ? sz.w / 2 - 5 : sz.w / 2, hh = nd.nodeType === "cloud" ? 28 : sz.h / 2;
+  const cx = pos.x + sz.w / 2, cy = pos.y + (nd.nodeType === "cloud" ? 30 : sz.h / 2);
+  if (dx === 0 && dy === 0) return { x: cx + hw, y: cy };
+  const s = Math.min(hw / (Math.abs(dx) || 1), hh / (Math.abs(dy) || 1)); return { x: cx + dx * s, y: cy + dy * s };
+}
+function angleFromCenter(wbId, point) {
+  const c = getNodeCenter(wbId); return Math.atan2(point.y - c.y, point.x - c.x) * 180 / Math.PI;
+}
+function defaultCP(fe, te) {
+  const dx = te.x - fe.x;
+  return { cp1: { x: fe.x + dx * .4, y: fe.y }, cp2: { x: te.x - dx * .4, y: te.y } };
+}
+function buildPath(fe, te, routing, conn) {
+  if (routing === 'curve') {
+    const def = defaultCP(fe, te);
+    const c1x = conn && conn.cp1 ? conn.cp1.x : def.cp1.x, c1y = conn && conn.cp1 ? conn.cp1.y : def.cp1.y;
+    const c2x = conn && conn.cp2 ? conn.cp2.x : def.cp2.x, c2y = conn && conn.cp2 ? conn.cp2.y : def.cp2.y;
+    return `M${fe.x},${fe.y} C${c1x},${c1y} ${c2x},${c2y} ${te.x},${te.y}`;
+  }
   if (routing === 'ortho') { const mx = (fe.x + te.x) / 2; return `M${fe.x},${fe.y} L${mx},${fe.y} L${mx},${te.y} L${te.x},${te.y}`; }
   return `M${fe.x},${fe.y} L${te.x},${te.y}`;
 }
 function markerAttr(type, end) { if (!type || type === 'none') return ''; return `marker-${end}="url(#m-${type}-${end})"`; }
+function selectConn(connId) {
+  selectedConnId = selectedConnId === connId ? null : connId;
+  renderConnections();
+}
+function deselectConn() {
+  if (selectedConnId) { selectedConnId = null; renderConnections(); }
+}
 function renderConnections() {
   const board = getBoard(); const cg = document.getElementById("wb-connections"); if (!cg) return; cg.innerHTML = '';
+  const ov = document.getElementById("wb-overlay");
+  if (ov) ov.querySelectorAll('.wb-handle').forEach(h => h.remove());
   for (const conn of (board.connections || [])) {
     const fn = (board.nodes || []).find(n => n.wbId === conn.from), tn = (board.nodes || []).find(n => n.wbId === conn.to); if (!fn || !tn) continue;
-    const fc = getNodeCenter(conn.from), tc = getNodeCenter(conn.to), fe = getNodeEdge(fc, tc, conn.from), te = getNodeEdge(tc, fc, conn.to);
+    const fc = getNodeCenter(conn.from), tc = getNodeCenter(conn.to);
+    const fe = conn.fromAnchor != null ? getNodeEdgeAtAngle(conn.from, conn.fromAnchor) : getNodeEdge(fc, tc, conn.from);
+    const te = conn.toAnchor != null ? getNodeEdgeAtAngle(conn.to, conn.toAnchor) : getNodeEdge(tc, fc, conn.to);
     const color = fn.color || 'var(--accent-blue)'; const isDashed = conn.style === "dashed"; const routing = conn.routing || 'straight';
-    const sm = conn.startMarker || 'none', em = conn.endMarker || 'arrow'; const pathD = buildPath(fe, te, routing);
-    const g = document.createElementNS("http://www.w3.org/2000/svg", "g"); g.classList.add("wb-conn-group");
+    const sm = conn.startMarker || 'none', em = conn.endMarker || 'arrow'; const pathD = buildPath(fe, te, routing, conn);
+    const isSelected = conn.id === selectedConnId;
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g"); g.classList.add("wb-conn-group"); if (isSelected) g.classList.add("wb-conn-selected");
     g.innerHTML = `<path d="${pathD}" class="wb-conn-line ${isDashed ? 'dashed' : ''}" stroke="${color}" ${markerAttr(sm, 'start')} ${markerAttr(em, 'end')}/><path d="${pathD}" stroke="transparent" stroke-width="14" fill="none" style="cursor:pointer"/>`;
     if (conn.label) { const mx = (fe.x + te.x) / 2, my = (fe.y + te.y) / 2, ll = conn.label.length * 5.5 + 12; g.innerHTML += `<rect x="${mx - ll / 2}" y="${my - 8}" width="${ll}" height="16" class="wb-conn-label-bg" fill="var(--bg-card)" stroke="${color}" stroke-opacity="0.3" stroke-width="0.5"/><text x="${mx}" y="${my}" class="wb-conn-label" fill="${color}">${escSvg(conn.label)}</text>`; }
     if (conn.fromLabel) { const fx = fe.x + (te.x - fe.x) * .15, fy = fe.y + (te.y - fe.y) * .15 - 10; g.innerHTML += `<text x="${fx}" y="${fy}" class="wb-conn-endpoint-label">${escSvg(conn.fromLabel)}</text>`; }
     if (conn.toLabel) { const tx = te.x - (te.x - fe.x) * .15, ty = te.y - (te.y - fe.y) * .15 - 10; g.innerHTML += `<text x="${tx}" y="${ty}" class="wb-conn-endpoint-label">${escSvg(conn.toLabel)}</text>`; }
+    g.addEventListener("click", (e) => { e.stopPropagation(); selectConn(conn.id); });
     g.addEventListener("dblclick", (e) => { e.stopPropagation(); editConn(conn.id); }); g.style.cursor = "pointer"; cg.appendChild(g);
+    // Handles only for the selected connection
+    if (!isSelected || !ov) continue;
+    // Bézier control point handles (only for 'curve' routing)
+    if (routing === 'curve') {
+      const def = defaultCP(fe, te);
+      const c1 = conn.cp1 || def.cp1, c2 = conn.cp2 || def.cp2;
+      const tl1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      tl1.setAttribute("x1", fe.x); tl1.setAttribute("y1", fe.y); tl1.setAttribute("x2", c1.x); tl1.setAttribute("y2", c1.y);
+      tl1.setAttribute("stroke", color); tl1.setAttribute("stroke-width", "1"); tl1.setAttribute("stroke-opacity", "0.3"); tl1.setAttribute("stroke-dasharray", "3 2");
+      tl1.classList.add("wb-handle"); ov.appendChild(tl1);
+      const tl2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      tl2.setAttribute("x1", te.x); tl2.setAttribute("y1", te.y); tl2.setAttribute("x2", c2.x); tl2.setAttribute("y2", c2.y);
+      tl2.setAttribute("stroke", color); tl2.setAttribute("stroke-width", "1"); tl2.setAttribute("stroke-opacity", "0.3"); tl2.setAttribute("stroke-dasharray", "3 2");
+      tl2.classList.add("wb-handle"); ov.appendChild(tl2);
+      const h1 = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      h1.setAttribute("cx", c1.x); h1.setAttribute("cy", c1.y); h1.setAttribute("r", 5);
+      h1.setAttribute("fill", color); h1.setAttribute("fill-opacity", "0.5"); h1.setAttribute("stroke", color); h1.setAttribute("stroke-width", "1.5");
+      h1.classList.add("wb-handle", "wb-bezier-handle"); h1.style.cursor = "grab";
+      h1.addEventListener("pointerdown", (e) => { e.stopPropagation(); e.preventDefault(); startHandleDrag(conn.id, 'cp1', h1, e); });
+      ov.appendChild(h1);
+      const h2 = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      h2.setAttribute("cx", c2.x); h2.setAttribute("cy", c2.y); h2.setAttribute("r", 5);
+      h2.setAttribute("fill", color); h2.setAttribute("fill-opacity", "0.5"); h2.setAttribute("stroke", color); h2.setAttribute("stroke-width", "1.5");
+      h2.classList.add("wb-handle", "wb-bezier-handle"); h2.style.cursor = "grab";
+      h2.addEventListener("pointerdown", (e) => { e.stopPropagation(); e.preventDefault(); startHandleDrag(conn.id, 'cp2', h2, e); });
+      ov.appendChild(h2);
+    }
+    // Anchor handles on endpoints
+    const ah1 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    ah1.setAttribute("x", fe.x - 4); ah1.setAttribute("y", fe.y - 4); ah1.setAttribute("width", 8); ah1.setAttribute("height", 8);
+    ah1.setAttribute("rx", 2); ah1.setAttribute("fill", color); ah1.setAttribute("fill-opacity", "0.4"); ah1.setAttribute("stroke", color); ah1.setAttribute("stroke-width", "1");
+    ah1.classList.add("wb-handle", "wb-anchor-handle"); ah1.style.cursor = "grab";
+    ah1.addEventListener("pointerdown", (e) => { e.stopPropagation(); e.preventDefault(); startHandleDrag(conn.id, 'fromAnchor', ah1, e); });
+    ov.appendChild(ah1);
+    const ah2 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    ah2.setAttribute("x", te.x - 4); ah2.setAttribute("y", te.y - 4); ah2.setAttribute("width", 8); ah2.setAttribute("height", 8);
+    ah2.setAttribute("rx", 2); ah2.setAttribute("fill", color); ah2.setAttribute("fill-opacity", "0.4"); ah2.setAttribute("stroke", color); ah2.setAttribute("stroke-width", "1");
+    ah2.classList.add("wb-handle", "wb-anchor-handle"); ah2.style.cursor = "grab";
+    ah2.addEventListener("pointerdown", (e) => { e.stopPropagation(); e.preventDefault(); startHandleDrag(conn.id, 'toAnchor', ah2, e); });
+    ov.appendChild(ah2);
   }
 }
 
