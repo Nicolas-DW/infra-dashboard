@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infra Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="dashboard" id="app"></div>
+<div class="toast" id="toast"></div>
+
+<dialog id="dlgNode">
+  <div class="dialog-header"><h2 id="dlgNodeTitle">Service</h2><button class="dialog-close" onclick="dlgNode.close()">&times;</button></div>
+  <div class="dialog-body">
+    <input type="hidden" id="f_id_orig">
+    <div class="field-row">
+      <div class="field"><label for="f_name">Nom</label><input type="text" id="f_name" placeholder="Ex: Scaleway"></div>
+      <div class="field"><label for="f_id">Identifiant</label><input type="text" id="f_id" placeholder="auto si vide"><small>snake_case, généré auto</small></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="f_category">Catégorie</label><select id="f_category"></select></div>
+      <div class="field"><label for="f_icon">Icône</label><input type="text" id="f_icon" placeholder="🟣" maxlength="4"></div>
+    </div>
+    <div class="field"><label for="f_type">Type / sous-titre</label><input type="text" id="f_type" placeholder="Ex: IaaS · fr-par-1"></div>
+    <div class="field"><label for="f_description">Description</label><textarea id="f_description" placeholder="Description courte..."></textarea></div>
+    <div class="field"><label for="f_tags">Tags (séparés par virgule)</label><input type="text" id="f_tags" placeholder="docker, staging, vps"></div>
+    <fieldset class="fieldset-box">
+      <legend class="fieldset-legend">Détails techniques</legend>
+      <div class="repeater" id="f_details"></div>
+      <button type="button" class="repeater-add" id="btn-add-detail">+ Détail</button>
+    </fieldset>
+    <fieldset class="fieldset-box">
+      <legend class="fieldset-legend">Liens rapides</legend>
+      <div class="repeater" id="f_links"></div>
+      <button type="button" class="repeater-add" id="btn-add-link">+ Lien</button>
+    </fieldset>
+  </div>
+  <div class="dialog-footer">
+    <button class="btn btn-danger" id="btn-delete-node" style="margin-right:auto;display:none;">Supprimer</button>
+    <button class="btn btn-ghost" onclick="dlgNode.close()">Annuler</button>
+    <button class="btn btn-primary" id="btn-save-node">Enregistrer</button>
+  </div>
+</dialog>
+
+<dialog id="dlgCat">
+  <div class="dialog-header"><h2 id="dlgCatTitle">Catégorie</h2><button class="dialog-close" onclick="dlgCat.close()">&times;</button></div>
+  <div class="dialog-body">
+    <input type="hidden" id="fc_id_orig">
+    <div class="field-row">
+      <div class="field"><label for="fc_label">Nom</label><input type="text" id="fc_label" placeholder="Ex: Monitoring"></div>
+      <div class="field"><label for="fc_id">Identifiant</label><input type="text" id="fc_id" placeholder="auto si vide"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="fc_icon">Icône</label><input type="text" id="fc_icon" placeholder="📊" maxlength="4"></div>
+      <div class="field"><label for="fc_color">Couleur</label><input type="color" id="fc_color" value="#3b82f6" class="color-input"></div>
+    </div>
+  </div>
+  <div class="dialog-footer">
+    <button class="btn btn-danger" id="fc_del_btn" style="margin-right:auto;display:none;">Supprimer</button>
+    <button class="btn btn-ghost" onclick="dlgCat.close()">Annuler</button>
+    <button class="btn btn-primary" id="btn-save-cat">Enregistrer</button>
+  </div>
+</dialog>
+
+<dialog id="dlgConn">
+  <div class="dialog-header"><h2 id="dlgConnTitle">Connexion</h2><button class="dialog-close" onclick="dlgConn.close()">&times;</button></div>
+  <div class="dialog-body">
+    <input type="hidden" id="fco_idx">
+    <div class="field"><label for="fco_route">Route (source → destination)</label><input type="text" id="fco_route" placeholder="Ex: Cloudflare Tunnel → Coolify"></div>
+    <div class="field"><label for="fco_desc">Description</label><input type="text" id="fco_desc" placeholder="Ex: Route le trafic HTTPS entrant"></div>
+  </div>
+  <div class="dialog-footer">
+    <button class="btn btn-ghost" onclick="dlgConn.close()">Annuler</button>
+    <button class="btn btn-primary" id="btn-save-conn">Enregistrer</button>
+  </div>
+</dialog>
+
+<dialog id="dlgWbConn">
+  <div class="dialog-header"><h2 id="dlgWbConnTitle">Connexion</h2><button class="dialog-close" onclick="dlgWbConn.close()">&times;</button></div>
+  <div class="dialog-body">
+    <input type="hidden" id="fwc_id">
+    <div class="field-row">
+      <div class="field"><label for="fwc_from">Source</label><select id="fwc_from"></select></div>
+      <div class="field"><label for="fwc_to">Destination</label><select id="fwc_to"></select></div>
+    </div>
+    <div class="field"><label for="fwc_label">Label (milieu)</label><input type="text" id="fwc_label" placeholder="Ex: HTTPS, API, Webhook..."></div>
+    <div class="field-row">
+      <div class="field"><label for="fwc_from_label">Label source</label><input type="text" id="fwc_from_label" placeholder="Ex: :443, PoPs AMS"></div>
+      <div class="field"><label for="fwc_to_label">Label destination</label><input type="text" id="fwc_to_label" placeholder="Ex: :80, cloudflared"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="fwc_style">Trait</label>
+        <select id="fwc_style">
+          <option value="solid">Solid</option>
+          <option value="dashed">Pointillé</option>
+        </select>
+      </div>
+      <div class="field"><label for="fwc_routing">Tracé</label>
+        <select id="fwc_routing">
+          <option value="straight">Droit</option>
+          <option value="curve">Courbe</option>
+          <option value="ortho">Angle droit</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="fwc_start_marker">Extrémité source</label>
+        <select id="fwc_start_marker">
+          <option value="none">Rien</option>
+          <option value="arrow">Flèche ◁</option>
+          <option value="circle">Cercle ○</option>
+          <option value="diamond">Losange ◇</option>
+        </select>
+      </div>
+      <div class="field"><label for="fwc_end_marker">Extrémité destination</label>
+        <select id="fwc_end_marker">
+          <option value="arrow" selected>Flèche ▷</option>
+          <option value="none">Rien</option>
+          <option value="circle">Cercle ○</option>
+          <option value="diamond">Losange ◇</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="dialog-footer">
+    <button class="btn btn-danger" id="fwc_del_btn" style="margin-right:auto;display:none;">Supprimer</button>
+    <button class="btn btn-ghost" onclick="dlgWbConn.close()">Annuler</button>
+    <button class="btn btn-primary" id="btn-save-wb-conn">Enregistrer</button>
+  </div>
+</dialog>
+
+<dialog id="dlgWbZone">
+  <div class="dialog-header"><h2 id="dlgWbZoneTitle">Zone</h2><button class="dialog-close" onclick="dlgWbZone.close()">&times;</button></div>
+  <div class="dialog-body">
+    <input type="hidden" id="fwz_id">
+    <div class="field-row">
+      <div class="field"><label for="fwz_label">Nom</label><input type="text" id="fwz_label" placeholder="Ex: Backend, Cloudflare"></div>
+      <div class="field"><label for="fwz_color">Couleur</label><input type="color" id="fwz_color" value="#3b82f6" class="color-input"></div>
+    </div>
+  </div>
+  <div class="dialog-footer">
+    <button class="btn btn-danger" id="fwz_del_btn" style="margin-right:auto;display:none;">Supprimer</button>
+    <button class="btn btn-ghost" onclick="dlgWbZone.close()">Annuler</button>
+    <button class="btn btn-primary" id="btn-save-wb-zone">Enregistrer</button>
+  </div>
+</dialog>
+
+<dialog id="dlgWbText">
+  <div class="dialog-header"><h2>Texte libre</h2><button class="dialog-close" onclick="dlgWbText.close()">&times;</button></div>
+  <div class="dialog-body">
+    <input type="hidden" id="fwt_id">
+    <div class="field"><label for="fwt_text">Texte</label><textarea id="fwt_text" placeholder="Note, commentaire..."></textarea></div>
+  </div>
+  <div class="dialog-footer">
+    <button class="btn btn-ghost" onclick="dlgWbText.close()">Annuler</button>
+    <button class="btn btn-primary" id="btn-save-wb-text">OK</button>
+  </div>
+</dialog>
+
+<dialog id="dlgConfirm">
+  <div class="dialog-header"><h2 id="dlgConfirmTitle">Confirmer</h2><button class="dialog-close" onclick="dlgConfirm.close()">&times;</button></div>
+  <div class="dialog-body"><p id="dlgConfirmMsg"></p></div>
+  <div class="dialog-footer">
+    <button class="btn btn-ghost" id="dlgConfirmNo">Annuler</button>
+    <button class="btn btn-primary" id="dlgConfirmYes">Confirmer</button>
+  </div>
+</dialog>
+
+<dialog id="dlgPrompt">
+  <div class="dialog-header"><h2 id="dlgPromptTitle">Saisie</h2><button class="dialog-close" onclick="dlgPrompt.close()">&times;</button></div>
+  <div class="dialog-body">
+    <p id="dlgPromptMsg"></p>
+    <div class="field"><input type="text" id="dlgPromptInput" placeholder=""></div>
+  </div>
+  <div class="dialog-footer">
+    <button class="btn btn-ghost" id="dlgPromptNo">Annuler</button>
+    <button class="btn btn-primary" id="dlgPromptYes">OK</button>
+  </div>
+</dialog>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

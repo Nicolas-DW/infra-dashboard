@@ -1,0 +1,7 @@
+node_modules
+dist
+.DS_Store
+src/config.js
+src/js/data.js
+src/js/seed-infra.js
+*.legacy.html
