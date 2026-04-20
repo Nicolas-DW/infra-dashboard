@@ -1,12 +1,12 @@
 dialog {
-  background: var(--bg-card-elevated);
+  background: var(--bg-card);
   color: var(--text);
-  border: 1px solid var(--border-elevated);
-  border-radius: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   padding: 0;
-  max-width: 560px;
+  max-width: 520px;
   width: calc(100% - 2rem);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, .7);
+  box-shadow: var(--shadow-sm);
 }
 
 dialog[open] {
@@ -14,20 +14,20 @@ dialog[open] {
 }
 
 dialog::backdrop {
-  background: rgba(0, 0, 0, .65);
-  backdrop-filter: blur(4px);
+  background: rgba(24, 24, 27, .2);
+  backdrop-filter: blur(1px);
 }
 
 .dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem 1.5rem;
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border);
 }
 
 .dialog-header h2 {
-  font-size: 1rem;
+  font-size: .95rem;
   font-weight: 600;
   color: var(--text-heading);
 }
@@ -35,21 +35,24 @@ dialog::backdrop {
 .dialog-close {
   background: none;
   border: none;
-  color: var(--text-muted);
-  font-size: 1.3rem;
+  color: var(--text-faint);
+  font-size: 1.2rem;
   cursor: pointer;
-  padding: .2rem;
+  padding: .15rem .3rem;
+  border-radius: 4px;
+  transition: color .15s, background .15s;
 }
 
 .dialog-close:hover {
   color: var(--text);
+  background: #f4f4f5;
 }
 
 .dialog-body {
-  padding: 1.5rem;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: .85rem;
   max-height: 70vh;
   overflow-y: auto;
 }
@@ -58,37 +61,38 @@ dialog::backdrop {
   display: flex;
   justify-content: flex-end;
   gap: .5rem;
-  padding: 1rem 1.5rem;
+  padding: .85rem 1.25rem;
   border-top: 1px solid var(--border);
+  background: #fafafa;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 /* Fields */
 .field {
   display: flex;
   flex-direction: column;
-  gap: .3rem;
+  gap: .25rem;
 }
 
 .field label {
   font-size: .75rem;
-  font-family: var(--font-mono);
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .field input[type="text"],
 .field input[type="url"],
 .field textarea,
 .field select {
-  background: var(--bg);
+  background: var(--bg-card);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: .5rem .75rem;
+  padding: .45rem .65rem;
   border-radius: var(--radius);
-  font-family: var(--font-mono);
-  font-size: .82rem;
+  font-family: var(--font-body);
+  font-size: .85rem;
   outline: none;
-  transition: border-color .2s;
+  transition: border-color .15s;
   width: 100%;
 }
 
@@ -100,7 +104,7 @@ dialog::backdrop {
 
 .field textarea {
   resize: vertical;
-  min-height: 60px;
+  min-height: 56px;
 }
 
 .field select {
@@ -110,7 +114,7 @@ dialog::backdrop {
 
 .field small {
   font-size: .65rem;
-  color: var(--text-muted);
+  color: var(--text-faint);
 }
 
 .field-row {
@@ -131,15 +135,15 @@ dialog::backdrop {
 
 .fieldset-legend {
   font-size: .75rem;
-  font-family: var(--font-mono);
   color: var(--text-muted);
-  padding: 0 .4rem;
+  padding: 0 .35rem;
+  font-weight: 500;
 }
 
 .color-input {
-  height: 38px;
+  height: 36px;
   padding: 2px;
-  background: var(--bg);
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   cursor: pointer;
@@ -150,12 +154,12 @@ dialog::backdrop {
 .repeater {
   display: flex;
   flex-direction: column;
-  gap: .5rem;
+  gap: .4rem;
 }
 
 .repeater-row {
   display: flex;
-  gap: .5rem;
+  gap: .4rem;
   align-items: center;
 }
 
@@ -164,18 +168,19 @@ dialog::backdrop {
 }
 
 .repeater-row button {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
   border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text-muted);
-  font-size: .9rem;
+  background: var(--bg-card);
+  color: var(--text-faint);
+  font-size: .85rem;
   cursor: pointer;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: color .15s, border-color .15s;
 }
 
 .repeater-row button:hover {
@@ -185,30 +190,30 @@ dialog::backdrop {
 
 .repeater-add {
   font-size: .75rem;
-  font-family: var(--font-mono);
   color: var(--accent-blue);
   background: none;
-  border: 1px dashed rgba(59, 130, 246, .3);
-  padding: .35rem .75rem;
-  border-radius: 6px;
+  border: 1px dashed #dbeafe;
+  padding: .3rem .65rem;
+  border-radius: var(--radius);
   cursor: pointer;
-  transition: all .15s;
+  transition: background .15s, border-color .15s;
   align-self: flex-start;
 }
 
 .repeater-add:hover {
-  background: rgba(59, 130, 246, .08);
+  background: var(--accent-soft);
   border-color: var(--accent-blue);
 }
 
 /* Buttons */
 .btn {
-  padding: .5rem 1.2rem;
-  border-radius: 8px;
-  font-family: var(--font-mono);
+  padding: .45rem 1rem;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
   font-size: .8rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all .15s;
+  transition: background .15s, border-color .15s, color .15s;
   border: 1px solid var(--border);
 }
 
@@ -219,45 +224,45 @@ dialog::backdrop {
 }
 
 .btn-primary:hover {
-  background: #2563eb;
+  background: #1e3a8a;
 }
 
 .btn-ghost {
-  background: transparent;
+  background: var(--bg-card);
   color: var(--text-muted);
 }
 
 .btn-ghost:hover {
+  border-color: var(--border-hover);
   color: var(--text);
-  border-color: var(--text-muted);
 }
 
 .btn-danger {
   background: transparent;
   color: var(--accent-red);
-  border-color: rgba(239, 68, 68, .3);
+  border-color: #fecaca;
 }
 
 .btn-danger:hover {
-  background: rgba(239, 68, 68, .1);
+  background: #fef2f2;
 }
 
 /* Toast */
 .toast {
   position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  background: var(--accent-green);
+  bottom: 1.5rem;
+  right: 1.5rem;
+  background: var(--text-heading);
   color: #fff;
-  padding: .6rem 1.2rem;
-  border-radius: 8px;
-  font-family: var(--font-mono);
+  padding: .55rem 1.1rem;
+  border-radius: var(--radius);
   font-size: .8rem;
   z-index: 9999;
   opacity: 0;
-  transform: translateY(10px);
-  transition: all .3s;
+  transform: translateY(8px);
+  transition: all .25s;
   pointer-events: none;
+  box-shadow: var(--shadow-sm);
 }
 
 .toast.show {

@@ -94,7 +94,7 @@ const GRID_TYPES = {
   none:  { label: 'Aucun',   build: () => '' },
 };
 
-const WB_DEFAULTS = { bgColor: '', gradientOn: false, gradColor1: '#0b1120', gradColor2: '#1a1040', gradType: 'linear', gradAngle: 135, gridType: 'dots', gridSize: 30, gridWidth: 1, gridColor: '#ffffff', gridOpacity: 0.06, fontScale: 1, nodeStroke: 1.5, connStroke: 1.5, connOpacity: 0.5 };
+const WB_DEFAULTS = { bgColor: '', gradientOn: false, gradColor1: '#f0f4ff', gradColor2: '#faf5ff', gradType: 'linear', gradAngle: 135, gridType: 'dots', gridSize: 30, gridWidth: 1, gridColor: '#000000', gridOpacity: 0.06, fontScale: 1, nodeStroke: 1.5, connStroke: 1.5, connOpacity: 0.5 };
 
 function getWbSettings() {
   const board = getBoard();
@@ -228,16 +228,16 @@ function renderSidePanel() {
       ${panelCollapsed.bg ? '' : `<div class="wb-panel-bg-options">
         <label>Couleur de fond</label>
         <div class="wb-bg-row">
-          <input type="color" value="${wbs.bgColor || '#080e1a'}" onchange="window.__wbSetBg('bgColor', this.value)" class="wb-bg-color-input">
+          <input type="color" value="${wbs.bgColor || '#fafafa'}" onchange="window.__wbSetBg('bgColor', this.value)" class="wb-bg-color-input">
           <button class="wb-bg-reset" onclick="window.__wbSetBg('bgColor', '')" title="Par défaut">↺</button>
         </div>
 
         <label><input type="checkbox" ${wbs.gradientOn ? 'checked' : ''} onchange="window.__wbSetBg('gradientOn', this.checked)"> Dégradé</label>
         ${wbs.gradientOn ? `
           <div class="wb-bg-row">
-            <input type="color" value="${wbs.gradColor1 || '#0b1120'}" onchange="window.__wbSetBg('gradColor1', this.value)" class="wb-bg-color-input" title="Couleur 1">
+            <input type="color" value="${wbs.gradColor1 || '#f0f4ff'}" onchange="window.__wbSetBg('gradColor1', this.value)" class="wb-bg-color-input" title="Couleur 1">
             <span class="wb-bg-arrow">→</span>
-            <input type="color" value="${wbs.gradColor2 || '#1a1040'}" onchange="window.__wbSetBg('gradColor2', this.value)" class="wb-bg-color-input" title="Couleur 2">
+            <input type="color" value="${wbs.gradColor2 || '#faf5ff'}" onchange="window.__wbSetBg('gradColor2', this.value)" class="wb-bg-color-input" title="Couleur 2">
           </div>
           <div class="wb-bg-row">
             <select onchange="window.__wbSetBg('gradType', this.value)" style="flex:1">

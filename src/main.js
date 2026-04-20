@@ -60,7 +60,6 @@ const collapsedCats = new Set();
 /* ═══ DOM REFS ═══ */
 const dlgNode = document.getElementById("dlgNode");
 const dlgCat = document.getElementById("dlgCat");
-const dlgConn = document.getElementById("dlgConn");
 
 /* ═══ RENDER ═══ */
 function render() {
@@ -72,19 +71,19 @@ function render() {
 function renderHeader() {
   const v = S.currentView;
   return `<div class="header">
-    <h1>🏗️ <span>${config.title}</span> — ${config.subtitle}</h1>
-    <div class="last-updated">Dernière mise à jour : ${S.lastUpdated}</div>
+    <h1><span>${config.title}</span> ${config.subtitle}</h1>
+    <div class="last-updated">Mis à jour le ${S.lastUpdated}</div>
   </div>
   <div class="view-tabs">
-    <button class="view-tab ${v === 'dashboard' ? 'active' : ''}" onclick="window.__setView('dashboard')">📋 Dashboard</button>
-    <button class="view-tab ${v === 'conception' ? 'active' : ''}" onclick="window.__setView('conception')">🧪 Conception</button>
+    <button class="view-tab ${v === 'dashboard' ? 'active' : ''}" onclick="window.__setView('dashboard')">Dashboard</button>
+    <button class="view-tab ${v === 'conception' ? 'active' : ''}" onclick="window.__setView('conception')">Conception</button>
   </div>
   ${v === 'dashboard' ? `<div class="toolbar">
     <button onclick="window.__openAddNode()">+ Service</button>
     <button onclick="window.__openAddCat()">+ Catégorie</button>
     <div class="toolbar-spacer"></div>
-    <button class="toolbar-subtle" onclick="window.__exportJSON()" title="Exporter JSON">📥</button>
-    <label class="toolbar-subtle" title="Importer JSON">📤<input type="file" accept=".json" onchange="window.__importJSON(event)" style="display:none"></label>
+    <button class="toolbar-subtle" onclick="window.__exportJSON()" title="Exporter JSON">Export</button>
+    <label class="toolbar-subtle" title="Importer JSON">Import<input type="file" accept=".json" onchange="window.__importJSON(event)" style="display:none"></label>
   </div>` : ''}`;
 }
 
@@ -93,7 +92,7 @@ function renderDashboard(app) {
 
   // Dropdown filter
   h += `<div class="dash-top-bar">
-    <div class="search-bar"><input type="text" id="search" placeholder="🔍 Rechercher..." oninput="window.__filterNodes(this.value)"></div>
+    <div class="search-bar"><input type="text" id="search" placeholder="Rechercher..." oninput="window.__filterNodes(this.value)"></div>
     <div class="filter-dropdown-wrap">
       <select id="cat-filter" onchange="window.__filterCategory(this.value)">
         <option value="all">Toutes les catégories</option>
@@ -122,30 +121,6 @@ function renderDashboard(app) {
   });
   h += `</div>`;
 
-  h += `<div class="connections-section" id="conn-section">
-    <h3>🔗 Flux & Connexions (${S.connections.length})</h3>
-    ${S.connections.map((c, i) => {
-      const p = c.split(" · ");
-      return `<div class="connection-line">
-        <span class="arrow">⟶</span><span>${p[0]}</span>
-        ${p[1] ? `<span style="color:var(--text-muted);font-style:italic">— ${p[1]}</span>` : ''}
-        <span class="conn-actions">
-          <button onclick="window.__openEditConn(${i})">✎</button>
-          <button class="cdel" onclick="window.__deleteConn(${i})">✕</button>
-        </span>
-      </div>`;
-    }).join('')}
-    <button class="btn btn-ghost" onclick="window.__openAddConn()" style="margin-top:.5rem">+ Connexion</button>
-  </div>`;
-
-  if (S.alerts && S.alerts.length) {
-    h += `<div class="alert-section">
-      <h3>⚠️ Recommandations sécurité (${S.alerts.length})</h3>
-      ${S.alerts.map(a => `<div class="alert-item">
-        <span class="severity ${a.severity === 'warn' ? 'sev-warn' : a.severity === 'high' ? 'sev-high' : 'sev-info'}">
-          ${a.severity === 'warn' ? 'ATTENTION' : a.severity === 'high' ? 'CRITIQUE' : 'INFO'}</span>${a.text}
-      </div>`).join('')}</div>`;
-  }
   app.innerHTML = h;
   initDragAndDrop();
 }
@@ -160,7 +135,6 @@ function renderNode(node, accent, idx) {
   const hasExtra = det || tags || links;
 
   return `<div class="node-card" data-id="${node.id}" data-tags="${(node.tags || []).join(' ')}" data-category="${node.category}" style="animation-delay:${idx * .03}s" ondblclick="window.__openEditNode('${node.id}')">
-    <style>.node-card[data-id="${node.id}"]::before{background:${accent};}</style>
     <div class="node-header">
       <span class="card-drag-handle" title="Glisser pour réordonner">⠿</span>
       <div class="node-icon" style="background:${accent}15;color:${accent}">${node.icon}</div>
@@ -439,28 +413,6 @@ async function deleteCat() {
   saveState(); render(); toast(`${cat.label} supprimée`);
 }
 
-/* ═══ DASHBOARD CONNECTIONS ═══ */
-function openAddConn() {
-  document.getElementById("fco_idx").value = ''; document.getElementById("fco_route").value = '';
-  document.getElementById("fco_desc").value = ''; document.getElementById("dlgConnTitle").textContent = "Ajouter une connexion"; dlgConn.showModal();
-}
-function openEditConn(i) {
-  const c = S.connections[i]; if (c == null) return; const p = c.split(" · ");
-  document.getElementById("fco_idx").value = i; document.getElementById("fco_route").value = p[0] || '';
-  document.getElementById("fco_desc").value = p[1] || ''; document.getElementById("dlgConnTitle").textContent = "Modifier"; dlgConn.showModal();
-}
-function saveConn() {
-  const idx = document.getElementById("fco_idx").value; const route = document.getElementById("fco_route").value.trim();
-  if (!route) { toast("Route requise"); return; }
-  const desc = document.getElementById("fco_desc").value.trim(); const line = desc ? `${route} · ${desc}` : route;
-  if (idx !== '') S.connections[parseInt(idx)] = line; else S.connections.push(line);
-  saveState(); dlgConn.close(); render(); toast("Connexion enregistrée");
-}
-async function deleteConn(i) {
-  const ok = await customConfirm("Supprimer cette connexion ?", "Supprimer");
-  if (!ok) return; S.connections.splice(i, 1); saveState(); render(); toast("Supprimée");
-}
-
 /* ═══ IMPORT / EXPORT ═══ */
 function exportJSON() {
   const d = { categories: S.categories, nodes: S.nodes, connections: S.connections, alerts: S.alerts, conceptionConfigs: S.conceptionConfigs, lastUpdated: S.lastUpdated, exportedAt: new Date().toISOString() };
@@ -502,9 +454,6 @@ window.__openAddNode = openAddNode;
 window.__openAddCat = openAddCat;
 window.__openEditCat = openEditCat;
 window.__openEditNode = openEditNode;
-window.__openAddConn = openAddConn;
-window.__openEditConn = openEditConn;
-window.__deleteConn = deleteConn;
 window.__exportJSON = exportJSON;
 window.__importJSON = importJSON;
 window.__filterCategory = filterCategory;
@@ -519,14 +468,13 @@ document.getElementById("btn-save-node").addEventListener("click", saveNode);
 document.getElementById("btn-delete-node").addEventListener("click", deleteNodeFromDialog);
 document.getElementById("btn-save-cat").addEventListener("click", saveCat);
 document.getElementById("fc_del_btn").addEventListener("click", deleteCat);
-document.getElementById("btn-save-conn").addEventListener("click", saveConn);
 document.getElementById("btn-save-wb-conn").addEventListener("click", () => window.__wbSaveWbConn());
 document.getElementById("fwc_del_btn").addEventListener("click", () => window.__wbDeleteWbConn());
 document.getElementById("btn-save-wb-zone").addEventListener("click", () => window.__wbSaveWbZone());
 document.getElementById("fwz_del_btn").addEventListener("click", () => window.__wbDeleteWbZone());
 document.getElementById("btn-save-wb-text").addEventListener("click", () => window.__wbSaveWbText());
 
-[dlgNode, dlgCat, dlgConn,
+[dlgNode, dlgCat,
  document.getElementById("dlgWbConn"), document.getElementById("dlgWbZone"), document.getElementById("dlgWbText"),
  document.getElementById("dlgConfirm"), document.getElementById("dlgPrompt"),
 ].forEach(d => d.addEventListener("click", e => { if (e.target === d) d.close(); }));

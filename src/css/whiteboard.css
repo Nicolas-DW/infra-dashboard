@@ -4,9 +4,9 @@
   gap: 2px;
   justify-content: center;
   margin-bottom: 1rem;
-  background: var(--bg-card);
+  background: #f4f4f5;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 3px;
   width: fit-content;
   margin-left: auto;
@@ -17,25 +17,27 @@
   background: transparent;
   border: none;
   color: var(--text-muted);
-  padding: .5rem 1.2rem;
-  border-radius: 8px;
-  font-family: var(--font-mono);
-  font-size: .78rem;
+  padding: .4rem 1rem;
+  border-radius: 4px;
+  font-family: var(--font-body);
+  font-size: .8rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all .2s;
+  transition: background .15s, color .15s;
   display: inline-flex;
   align-items: center;
-  gap: .35rem;
+  gap: .3rem;
 }
 
 .view-tab:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, .06);
+  background: rgba(0, 0, 0, .04);
 }
 
 .view-tab.active {
-  background: var(--accent-blue);
-  color: #fff;
+  background: var(--bg-card);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(0,0,0,.06);
 }
 
 /* ═══ WHITEBOARD CONTAINER ═══ */
@@ -138,7 +140,7 @@
 
 /* Config bar sections */
 .wbcb-section {
-  border-bottom: 1px solid rgba(255, 255, 255, .04);
+  border-bottom: 1px solid var(--border);
 }
 
 .wbcb-section:last-child { border-bottom: none; }
@@ -246,7 +248,7 @@
 .wb-zone rect { rx: 16; ry: 16; }
 
 .wb-zone-label {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: calc(13px * var(--wb-fs, 1));
   font-weight: 600;
   text-transform: uppercase;
@@ -267,7 +269,7 @@
   transition: filter .15s;
 }
 
-.wb-node-content { font-family: 'Outfit', sans-serif; }
+.wb-node-content { font-family: 'Inter', sans-serif; }
 .wb-node-icon { font-size: calc(20px * var(--wb-fs, 1)); }
 
 .wb-node-name {
@@ -358,7 +360,7 @@
 
 .wb-panel-section {
   padding: .5rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, .03);
+  border-bottom: 1px solid var(--border);
 }
 
 .wb-panel-title {
@@ -444,7 +446,7 @@
 }
 
 .wb-panel-item:hover:not(:disabled) {
-  background: rgba(59, 130, 246, .1);
+  background: var(--accent-soft);
 }
 
 .wb-panel-item:disabled,

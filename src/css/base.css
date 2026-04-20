@@ -8,17 +8,10 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   overflow-x: hidden;
-}
-
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, .07) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, .06) 0%, transparent 50%);
-  pointer-events: none;
-  z-index: 0;
+  line-height: 1.5;
 }

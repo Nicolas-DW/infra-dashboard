@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Infra Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
 <div class="dashboard" id="app"></div>
@@ -64,18 +65,6 @@
   </div>
 </dialog>
 
-<dialog id="dlgConn">
-  <div class="dialog-header"><h2 id="dlgConnTitle">Connexion</h2><button class="dialog-close" onclick="dlgConn.close()">&times;</button></div>
-  <div class="dialog-body">
-    <input type="hidden" id="fco_idx">
-    <div class="field"><label for="fco_route">Route (source → destination)</label><input type="text" id="fco_route" placeholder="Ex: Cloudflare Tunnel → Coolify"></div>
-    <div class="field"><label for="fco_desc">Description</label><input type="text" id="fco_desc" placeholder="Ex: Route le trafic HTTPS entrant"></div>
-  </div>
-  <div class="dialog-footer">
-    <button class="btn btn-ghost" onclick="dlgConn.close()">Annuler</button>
-    <button class="btn btn-primary" id="btn-save-conn">Enregistrer</button>
-  </div>
-</dialog>
 
 <dialog id="dlgWbConn">
   <div class="dialog-header"><h2 id="dlgWbConnTitle">Connexion</h2><button class="dialog-close" onclick="dlgWbConn.close()">&times;</button></div>
