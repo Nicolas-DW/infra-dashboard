@@ -2,9 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Statut : projet perso, NON opérationnel en production Kanopée.** Hors périmètre prod (le README
+> de [`../docs/`](../docs/README.md) l'exclut explicitement). Outil local de cartographie/documentation
+> d'infra, sans déploiement ni dépendance des autres apps de la suite.
+
 ## Project Overview
 
 Infrastructure documentation dashboard. Vanilla JS SPA built with Vite — no framework, no runtime dependencies.
+**Node 20** requis (voir `.nvmrc`).
 
 ## Commands
 
